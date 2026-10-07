@@ -27,8 +27,8 @@ func _ready() -> void:
 func attach_project(project: Project) -> void:
 	if _project and _project.new_current_page.is_connected(render_page):
 		_project.new_current_page.disconnect(render_page)
-
 	_project = project
+
 	_time_machine_pictures.clear()
 	_time_machine_frames.clear()
 	_time_machine_layers.clear()
@@ -37,74 +37,77 @@ func attach_project(project: Project) -> void:
 		onion_skin_renderer.attach_project(project)
 
 
-## Refreshes canvas sprites to current page. [br]
-## [param page] - Page to render.
 func go_back_one_step() -> void:
-    if _project == null:
-        return
+	if _project == null:
+		return
 
-    if _time_machine_pictures.size() == 0:
-        return
+	if _time_machine_pictures.size() == 0:
+		return
 
-    var picture = _time_machine_pictures.pop_back()
-    var frame_number = _time_machine_frames.pop_back()
-    var layer_number = _time_machine_layers.pop_back()
+	var picture = _time_machine_pictures.pop_back()
+	var frame_number = _time_machine_frames.pop_back()
+	var layer_number = _time_machine_layers.pop_back()
 
-    if frame_number < 0:
-        return
+	if frame_number < 0:
+		return
 
-    if frame_number >= _project.frames.size():
-        return
+	if frame_number >= _project.frames.size():
+		return
 
-    var page = _project.frames[frame_number]
+	var page = _project.frames[frame_number]
 
-    if layer_number < 0:
-        return
+	if layer_number < 0:
+		return
 
-    if layer_number >= page.layers.size():
-        return
+	if layer_number >= page.layers.size():
+		return
 
-    page.set_layer(layer_number, picture)
-    _project.set_layer(layer_number)
-    _project.set_frame(frame_number)
+	page.set_layer(layer_number, picture)
+	_project.set_layer(layer_number)
+	_project.set_frame(frame_number)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-    if event is InputEventKey:
-        if event.pressed:
-            if not event.echo:
-                if event.keycode == KEY_Z:
-                    if event.ctrl_pressed or event.meta_pressed:
-                        go_back_one_step()
-                        get_viewport().set_input_as_handled()
+	if event is InputEventKey:
+		if event.pressed:
+			if not event.echo:
+				if event.keycode == KEY_Z:
+					if event.ctrl_pressed or event.meta_pressed:
+						go_back_one_step()
+						get_viewport().set_input_as_handled()
 
 
 func _put_current_picture_in_time_machine() -> void:
-    if _project == null:
-        return
+	if _project == null:
+		return
 
-    var page = _project.get_current_page()
+	var page = _project.get_current_page()
 
-    if page == null:
-        return
+	if page == null:
+		return
 
-    var layer_number = _project.current_layer
+	var layer_number = _project.current_layer
 
-    if layer_number < 0:
-        return
+	if layer_number < 0:
+		return
 
-    if layer_number >= page.layers.size():
-        return
+	if layer_number >= page.layers.size():
+		return
 
-    _time_machine_pictures.append(page.layers[layer_number].duplicate())
-    _time_machine_frames.append(_project.current_frame)
-    _time_machine_layers.append(layer_number)
+	_time_machine_pictures.append(page.layers[layer_number].duplicate())
+	_time_machine_frames.append(_project.current_frame)
+	_time_machine_layers.append(layer_number)
 
-    while _time_machine_pictures.size() > 20:
-        _time_machine_pictures.remove_at(0)
-        _time_machine_frames.remove_at(0)
-        _time_machine_layers.remove_at(0)
+	while _time_machine_pictures.size() > 20:
+		_time_machine_pictures.remove_at(0)
+		_time_machine_frames.remove_at(0)
+		_time_machine_layers.remove_at(0)
+
+
+## Refreshes canvas sprites to current page. [br]
+## [param page] - Page to render.
 func render_page(page: Page) -> void:
+
 	control_node.size = Vector2(_project.width, _project.height)
 	control_node.position = -(control_node.size / 2.0)
 
