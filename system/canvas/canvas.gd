@@ -7,6 +7,9 @@ signal canvas_input(event: InputEventMouse)
 @export var camera: Camera2D
 
 var _project: Project
+var _time_machine_pictures: Array[Image] = []
+var _time_machine_frames: Array[int] = []
+var _time_machine_layers: Array[int] = []
 
 @onready var control_node: Control = $Control
 @onready var layers_node: Node2D = $Control/Layers
@@ -26,7 +29,9 @@ func attach_project(project: Project) -> void:
 		_project.new_current_page.disconnect(render_page)
 
 	_project = project
-
+	_time_machine_pictures.clear()
+	_time_machine_frames.clear()
+	_time_machine_layers.clear()
 	if _project:
 		_project.new_current_page.connect(render_page)
 		onion_skin_renderer.attach_project(project)
@@ -34,6 +39,71 @@ func attach_project(project: Project) -> void:
 
 ## Refreshes canvas sprites to current page. [br]
 ## [param page] - Page to render.
+func go_back_one_step() -> void:
+    if _project == null:
+        return
+
+    if _time_machine_pictures.size() == 0:
+        return
+
+    var picture = _time_machine_pictures.pop_back()
+    var frame_number = _time_machine_frames.pop_back()
+    var layer_number = _time_machine_layers.pop_back()
+
+    if frame_number < 0:
+        return
+
+    if frame_number >= _project.frames.size():
+        return
+
+    var page = _project.frames[frame_number]
+
+    if layer_number < 0:
+        return
+
+    if layer_number >= page.layers.size():
+        return
+
+    page.set_layer(layer_number, picture)
+    _project.set_layer(layer_number)
+    _project.set_frame(frame_number)
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+    if event is InputEventKey:
+        if event.pressed:
+            if not event.echo:
+                if event.keycode == KEY_Z:
+                    if event.ctrl_pressed or event.meta_pressed:
+                        go_back_one_step()
+                        get_viewport().set_input_as_handled()
+
+
+func _put_current_picture_in_time_machine() -> void:
+    if _project == null:
+        return
+
+    var page = _project.get_current_page()
+
+    if page == null:
+        return
+
+    var layer_number = _project.current_layer
+
+    if layer_number < 0:
+        return
+
+    if layer_number >= page.layers.size():
+        return
+
+    _time_machine_pictures.append(page.layers[layer_number].duplicate())
+    _time_machine_frames.append(_project.current_frame)
+    _time_machine_layers.append(layer_number)
+
+    while _time_machine_pictures.size() > 20:
+        _time_machine_pictures.remove_at(0)
+        _time_machine_frames.remove_at(0)
+        _time_machine_layers.remove_at(0)
 func render_page(page: Page) -> void:
 	control_node.size = Vector2(_project.width, _project.height)
 	control_node.position = -(control_node.size / 2.0)
@@ -68,6 +138,7 @@ func bake_page() -> void:
 	# Getting items from our project.
 	var current_page = _project.frames[_project.current_frame]
 	var current_layer = _project.current_layer
+	_put_current_picture_in_time_machine()
 
 	bake_viewport.size = Vector2(_project.width, _project.height)
 	bake_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
